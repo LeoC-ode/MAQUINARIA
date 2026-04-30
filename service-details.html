@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Service Details | Maintenance Core</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="assets/tailwind-config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  body { font-family: 'Public Sans', sans-serif; min-height: max(884px, 100dvh); }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col" data-page="service">
+
+<main class="flex-grow pt-20 md:ml-64 px-margin pb-xl">
+  <div class="max-w-3xl mx-auto flex flex-col gap-lg" id="detail-root">
+    <!-- Populated by JS -->
+  </div>
+</main>
+
+<script src="assets/app.js"></script>
+<script>
+  function getCodeFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("code");
+  }
+
+  function renderNotFound(code) {
+    document.getElementById("detail-root").innerHTML = `
+      <div class="flex items-center gap-sm">
+        <a class="text-zinc-500 flex items-center hover:text-primary transition-colors" href="index.html">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <span class="font-label-sm text-label-sm text-zinc-500 uppercase tracking-widest">Search</span>
+      </div>
+      <section class="bg-white border border-zinc-200 rounded-xl p-lg flex flex-col gap-md shadow-sm items-center text-center py-12">
+        <span class="material-symbols-outlined text-error" style="font-size:64px">search_off</span>
+        <h2 class="font-h2 text-h2 text-on-surface">Service not found</h2>
+        <p class="text-secondary">We couldn't find a service matching the code <span class="font-bold">${code || "(empty)"}</span>.</p>
+        <a href="index.html" class="mt-4 bg-primary text-white px-6 py-3 rounded-lg uppercase font-label-sm tracking-widest hover:opacity-90">Back to Tracker</a>
+      </section>`;
+  }
+
+  function renderService(svc) {
+    const meta = STATUS_META[svc.status] || STATUS_META["hold"];
+    const tasksHtml = (svc.tasks || []).length
+      ? `<ul class="list-disc pl-lg flex flex-col gap-xs">
+           ${svc.tasks.map(t => `<li>${t}</li>`).join("")}
+         </ul>`
+      : `<p class="text-secondary italic">No tasks logged yet.</p>`;
+
+    document.getElementById("detail-root").innerHTML = `
+      <div class="flex items-center gap-sm">
+        <a class="text-zinc-500 flex items-center hover:text-primary transition-colors" href="index.html">
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <span class="font-label-sm text-label-sm text-zinc-500 uppercase tracking-widest">Request #${svc.code}</span>
+      </div>
+
+      <section class="bg-white border border-zinc-200 rounded-xl p-lg flex flex-col gap-md shadow-sm">
+        <div class="flex justify-between items-start gap-md flex-wrap">
+          <div class="flex flex-col gap-xs">
+            <h2 class="font-h1 text-h1 text-on-surface">${svc.machine}</h2>
+            <div class="flex items-center gap-sm">
+              <span class="material-symbols-outlined text-secondary text-[18px]">settings_suggest</span>
+              <span class="font-body-md text-body-md text-secondary">Service Type: ${svc.serviceType}</span>
+            </div>
+            <div class="flex items-center gap-sm">
+              <span class="material-symbols-outlined text-secondary text-[18px]">apartment</span>
+              <span class="font-body-md text-body-md text-secondary">${svc.customer}</span>
+            </div>
+          </div>
+          <div class="${meta.badge} px-3 py-1 rounded-full flex items-center gap-xs">
+            <span class="w-2 h-2 rounded-full ${meta.dot} ${svc.status === 'in-progress' || svc.status === 'critical' ? 'animate-pulse' : ''}"></span>
+            <span class="font-label-sm text-label-sm uppercase">${meta.label}</span>
+          </div>
+        </div>
+
+        <div class="h-48 w-full rounded-lg overflow-hidden mt-sm border border-zinc-100 bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center">
+          <span class="material-symbols-outlined text-zinc-400" style="font-size:96px">precision_manufacturing</span>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+        <div class="bg-surface-container-low border border-zinc-200 rounded-xl p-md flex flex-col gap-sm">
+          <span class="font-label-sm text-label-sm text-secondary uppercase">Last Update Date</span>
+          <div class="flex items-center gap-sm">
+            <span class="material-symbols-outlined text-primary">event_note</span>
+            <span class="font-h3 text-h3">${formatDate(svc.lastUpdate)}</span>
+          </div>
+        </div>
+        <div class="bg-surface-container-low border border-zinc-200 rounded-xl p-md flex flex-col gap-sm">
+          <span class="font-label-sm text-label-sm text-secondary uppercase">Technician Assigned</span>
+          <div class="flex items-center gap-sm">
+            <span class="material-symbols-outlined text-primary">engineering</span>
+            <span class="font-h3 text-h3">${svc.technician || "Unassigned"}</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="bg-white border border-zinc-200 rounded-xl p-lg flex flex-col gap-md">
+        <div class="flex items-center gap-sm border-b border-zinc-100 pb-sm">
+          <span class="material-symbols-outlined text-secondary">description</span>
+          <h3 class="font-h3 text-h3 uppercase tracking-tight">Maintenance Notes</h3>
+        </div>
+        <div class="font-body-md text-body-md text-on-surface-variant flex flex-col gap-md">
+          <p>${svc.notes || "No notes recorded."}</p>
+          ${tasksHtml}
+        </div>
+
+        <form id="add-task-form" class="flex gap-sm pt-sm border-t border-zinc-100">
+          <input id="new-task" type="text" placeholder="Add a progress note..."
+            class="flex-1 h-10 px-3 border border-outline-variant rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+          <button type="submit" class="bg-primary text-white px-4 rounded-lg font-label-sm uppercase tracking-wider hover:opacity-90">Add</button>
+        </form>
+      </section>
+
+      <div class="flex flex-col gap-sm mt-md">
+        <button id="btn-update-progress"
+          class="bg-primary text-white font-label-sm py-4 rounded-lg uppercase tracking-widest hover:opacity-90 transition-opacity">
+          Update Progress
+        </button>
+        <button id="btn-emergency"
+          class="border border-error text-error font-label-sm py-4 rounded-lg uppercase tracking-widest hover:bg-error/10 transition-colors">
+          Emergency Shutdown
+        </button>
+      </div>
+    `;
+
+    document.getElementById("btn-update-progress").addEventListener("click", () => cycleStatus(svc));
+    document.getElementById("btn-emergency").addEventListener("click", () => emergencyShutdown(svc));
+    document.getElementById("add-task-form").addEventListener("submit", e => {
+      e.preventDefault();
+      const input = document.getElementById("new-task");
+      const text = input.value.trim();
+      if (!text) return;
+      svc.tasks = svc.tasks || [];
+      svc.tasks.push(text);
+      svc.lastUpdate = new Date().toISOString();
+      upsertService(svc);
+      renderService(svc);
+    });
+  }
+
+  function cycleStatus(svc) {
+    const order = ["scheduled", "in-progress", "critical", "hold", "completed"];
+    const i = order.indexOf(svc.status);
+    svc.status = order[(i + 1) % order.length];
+    svc.lastUpdate = new Date().toISOString();
+    upsertService(svc);
+    renderService(svc);
+  }
+
+  function emergencyShutdown(svc) {
+    if (!confirm("Trigger emergency shutdown? The service will be moved to Hold.")) return;
+    svc.status = "hold";
+    svc.lastUpdate = new Date().toISOString();
+    svc.tasks = svc.tasks || [];
+    svc.tasks.push("Emergency shutdown triggered");
+    upsertService(svc);
+    renderService(svc);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const code = getCodeFromUrl();
+    const svc = findService(code);
+    if (!svc) renderNotFound(code);
+    else renderService(svc);
+  });
+</script>
+</body>
+</html>
